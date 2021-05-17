@@ -1,0 +1,208 @@
+import math
+import time
+from os import listdir
+from os.path import isfile, join
+
+from configs import files_path, include_types, start_value, end_value, step, exclude_strings
+from models import DataEntity, ProcessedDataEntity, get_index_value, calculate_MAP, create_file, calculate_AUC, \
+    get_steps, calculate_POP
+
+processed_csv_file_data = []
+processed_csv_file_data_normalized = []
+mypath = files_path
+onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
+t = time.time()
+data_rows = []
+
+for file_num, filename in enumerate(onlyfiles):
+    TRUE_FALSE_MAPPINGS = [{} for j in range(0, 11)]
+    AUC_MAPPINGS = [{} for j in range(0, 101)]
+    extension = filename.split(".")[1]
+    if extension not in include_types:
+        continue
+    exclude_check = False
+    for excluder in exclude_strings:
+        if excluder in filename:
+            exclude_check = True
+            break
+    if exclude_check:
+        continue
+
+    file = open(mypath + filename)
+    total_line_of_code = 0 # total lines of code
+    total_nr_no = 0 # total line of false rows (used for normalization of IFA)
+    """
+    File reading and initial transformation
+    """
+
+    for row_index, row in enumerate(file):
+        if row_index == 0:
+            continue
+        lst = row.split(";") # delimiter
+        id, size, prediction, actual = lst[0], int(lst[1]), float(lst[2]), True if lst[3].strip() == 'YES' else False
+
+        data_rows.append(DataEntity(id=id, size=size, prediction=prediction, actual=actual, prediction_1=not actual,
+                                    order_id=row_index))
+        total_line_of_code += data_rows[-1].size
+        total_nr_no += 1 if not actual else 0
+
+        for i in range(0, 11):
+            predicted = True if prediction >= i / 10 else False
+            index = get_index_value(predicted, actual)
+            if index in TRUE_FALSE_MAPPINGS[i]:
+                TRUE_FALSE_MAPPINGS[i][index] += 1
+            else:
+                TRUE_FALSE_MAPPINGS[i][index] = 1
+
+        for i in range(0, 101):
+            predicted = True if prediction >= i / 100 else False
+            index = get_index_value(predicted, actual)
+            if index in AUC_MAPPINGS[i]:
+                AUC_MAPPINGS[i][index] += 1
+            else:
+                AUC_MAPPINGS[i][index] = 1
+
+    print("Processing file # ", file_num + 1, filename, total_line_of_code, len(data_rows))
+
+    DataEntity.order_cnt = 0
+    data_rows = sorted(data_rows)
+    """
+    Calculate IFA
+    """
+    IFA_CNT = 0
+    for data in data_rows:
+        if not data.actual:
+            IFA_CNT += 1
+        else:
+            break
+
+    """
+    Iterate and get POPX, incrementing start value with step till it becomes = end_value
+    This function will also generate Pop general, Worst , Optimal by sorting according to the defined fields
+    """
+
+
+    def getPOPTWithSteps(start_value, end_value, step):
+
+        def generate(ind):
+            """
+            Method that depending on the indes, generates either the nominators for each step(goes by provided step)
+            for
+            POP*OPTIMAL*WORSE
+            :param ind:
+            :return:
+            """
+            index_pos, partial_sum, entity_cnt = 0, 0, 0
+            active_rows = data_rows if not ind else perfect_order_data_rows
+            data_dict = poptDictDataTotal if ind == 0 else optimalDictData if ind == 1 else worstDictData
+
+            for index_value, value in enumerate(check_total_values):
+                while index_pos < len(active_rows):
+                    partial_sum += active_rows[index_pos].size
+                    if partial_sum > value:
+                        key = list(poptDictDataTotal.keys())[index_value]
+                        data_dict[key] = entity_cnt
+                        partial_sum -= active_rows[index_pos].size
+                        break
+
+                    entity_cnt += 1 if active_rows[index_pos].actual else 0
+                    index_pos += 1
+
+        real_start = 10
+        real_end = 100
+        check_total_values = []
+        poptDictDataTotal = {}
+        optimalDictData = {}
+        worstDictData = {}
+
+        while real_start <= real_end:
+            check_total_values.append(real_start * total_line_of_code / 100)
+            poptDictDataTotal[f"POPT{real_start}"] = 0
+            optimalDictData[f"POPT{real_start}"] = 0
+            worstDictData[f"POPT{real_start}"] = 0
+            real_start += 5
+
+        generate(0)  # Prediction
+
+        DataEntity.order_cnt = 2
+        perfect_order_data_rows = sorted(data_rows)
+        generate(1)  # Optimal
+
+        DataEntity.order_cnt = 3
+        perfect_order_data_rows = sorted(data_rows)
+        generate(2)  # Worse
+
+        DataEntity.order_cnt = 1
+        index_pos, partial_sum, entity_cnt = 0, 0, 0
+        perfect_order_data_rows = sorted(data_rows)
+        # Calculates the denominator and does the calculations nom/denom
+        for index_value, value in enumerate(check_total_values):
+            while index_pos < len(perfect_order_data_rows):
+                partial_sum += perfect_order_data_rows[index_pos].size
+                if partial_sum > value:
+                    key = list(poptDictDataTotal.keys())[index_value]
+                    if entity_cnt:
+                        poptDictDataTotal[key] /= entity_cnt
+                        worstDictData[key] /= entity_cnt
+                        optimalDictData[key] /= entity_cnt
+                    else:
+                        poptDictDataTotal[key] = 0
+                        worstDictData[key] = 0
+                        optimalDictData[key] = 0
+
+                    partial_sum -= perfect_order_data_rows[index_pos].size
+                    break
+
+                entity_cnt += 1 if perfect_order_data_rows[index_pos].actual else 0
+                index_pos += 1
+
+        return get_steps(start_value, end_value, step,
+                         poptDictDataTotal), poptDictDataTotal, optimalDictData, worstDictData
+
+
+    poptStepData, PopTotalData, PopOptimalData, PopWorseData = getPOPTWithSteps(start_value, end_value, step)
+
+    # Confusion Matrix: 5 stands for 0.5 prediction , count of true positive, true negative, false positive, false negative
+    tpc = TRUE_FALSE_MAPPINGS[5].get('TP', 0)
+    fpc = TRUE_FALSE_MAPPINGS[5].get('FP', 0)
+    fnc = TRUE_FALSE_MAPPINGS[5].get('FN', 0)
+    tnc = TRUE_FALSE_MAPPINGS[5].get('TN', 0)
+
+    # calculates precision_0.5 ,recall, f1_score, g_measure,mcc
+    precision_0_5 = tpc / (tpc + fpc) if (tpc + fpc) else 0
+    recall = tpc / (tpc + fnc) if (tpc + fnc) else 0
+    f1_score = 2 * tpc / (2 * tpc + fpc + fnc) if (tpc + fpc + fnc) else 0
+    pf = fpc / (fpc + tnc) if (fpc + tnc) else 0
+
+    divider = math.sqrt((tpc + fpc) * (tpc + fnc) * (tnc + fpc) * (tnc + fnc))
+
+    g_measure = 2 * recall * (1 - pf) / (recall + (1 - pf)) if (recall + (1 - pf)) else 0
+    mcc = (tpc * tnc - fpc * fnc) / divider if divider else 0
+
+    # calculates map,auc,pop
+    MAP = calculate_MAP(TRUE_FALSE_MAPPINGS)
+    auc = calculate_AUC(AUC_MAPPINGS)
+    pop = calculate_POP(PopTotalData, PopOptimalData, PopWorseData)
+
+    processed_csv_file_data.append(
+        ProcessedDataEntity(filename=filename, total_nr_no=total_nr_no, IFA=IFA_CNT,
+                            poptStepData=poptStepData,
+                            precision_0_5=precision_0_5, recall=recall, f1_score=f1_score,
+                            MAP=MAP, auc=auc, g_measure=g_measure, mcc=mcc, pop=pop))
+    processed_csv_file_data_normalized.append(processed_csv_file_data[-1].normalize())
+    data_rows = []
+
+"""
+Small time calculation of file creation
+"""
+print(time.time() - t)
+
+"""
+Creates the non normalized file
+"""
+create_file(processed_csv_file_data)
+
+"""
+Creates the normalized file
+"""
+create_file(processed_csv_file_data_normalized, normalized=True)
