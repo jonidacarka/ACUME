@@ -160,9 +160,9 @@ class ProcessedDataEntity:
             poptX += appendage
             s += step
 
-        return f"Filename;IFA;{poptX}Precision_0.5;Recall;MAP;F1;AUC;G_Measure;MCC;POP;" if not normalized else \
+        return f"Filename;IFA;{poptX}Precision_0.5;Recall;MAP;F1;AUC;G_Measure;MCC;avgPopt;" if not normalized else \
             f"Filename;normIFA;{poptX}normPrecision_0.5;normRecall;normMAP;normF1;normAUC;normG_Measure;normMCC" \
-            f";normPop"
+            f";normAvgPopt;"
 
 
 def get_index_value(predicted, actual):
