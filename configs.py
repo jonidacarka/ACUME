@@ -62,7 +62,7 @@ normalize_json = {
     },
     'mcc': {
         'optimal': 1,
-        'worst': 0
+        'worst': -1
     },
     'pop': {
         'optimal': 1,
