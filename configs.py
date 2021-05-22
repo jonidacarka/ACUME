@@ -73,3 +73,17 @@ popx = {
     'optimal': 1,
     'worst': 0
 }
+
+
+arg_mapp = {
+    "IFA": "IFA",
+    "poptX": False,
+    "Precision_0.5": "precision_0_5",
+    "Recall": "recall",
+    "F1": "f1_score",
+    "MAP": "MAP",
+    "AUC": "auc",
+    "G_Measure": "g_measure",
+    "MCC": "mcc",
+    "avgPopt": "pop"
+}

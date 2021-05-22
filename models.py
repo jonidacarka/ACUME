@@ -1,4 +1,4 @@
-from configs import get_configs, start_value, end_value, step, normalize_json, popx, sorting_orders
+from configs import get_configs, start_value, end_value, step, normalize_json, popx, sorting_orders, arg_mapp
 import csv
 
 
@@ -77,6 +77,7 @@ class ProcessedDataEntity:
     g_measure - G measure
     mcc - Mathews corroltion coeficinet
     """
+    args = None
 
     def __init__(self, filename="", total_nr_no=0, IFA=0, poptStepData={}, precision_0_5=0.0, recall=0.0,
                  f1_score=0.0,
@@ -136,33 +137,51 @@ class ProcessedDataEntity:
 
         return normalized_proccessed_entity
 
-    def __str__(self):
-        """
-        :return: String information of processed , i use it when i write in files
-        """
+    def get_popX(self):
         poptX = ""
         for key, val in self.popStepData.items():
             poptX += f"{val};"
-        return f"{self.IFA};{self.filename};" \
-               f"{poptX}{self.precision_0_5};" \
-               f"{self.recall};{self.MAP};" \
-               f"{self.f1_score};{self.auc};" \
-               f"{self.g_measure};{self.mcc};" \
-               f"{self.pop};"
+        return poptX
 
     @staticmethod
-    def generate_header(normalized=False):
-        """generates first row of new file, if normalized=True - adds norm as a name"""
+    def get_popX_header(normalized):
         poptX = ""
         s = start_value
         while s <= end_value:
             appendage = f"POPT{s};" if not normalized else f"normPOPT{s};"
             poptX += appendage
             s += step
+        return poptX
 
-        return f"Filename;IFA;{poptX}Precision_0.5;Recall;MAP;F1;AUC;G_Measure;MCC;avgPopt;" if not normalized else \
-            f"Filename;normIFA;{poptX}normPrecision_0.5;normRecall;normMAP;normF1;normAUC;normG_Measure;normMCC" \
-            f";normAvgPopt;"
+    def __str__(self):
+        """
+        :return: String information of processed , i use it when i write in files
+        """
+        args = self.args if self.args else arg_mapp
+
+        output = f"{self.filename};"
+
+        for arg in args:
+            output += f"{getattr(self, arg_mapp[arg])};" if arg != "poptX" else self.get_popX()
+
+        return output
+
+
+    @staticmethod
+    def generate_header(normalized=False):
+        """generates first row of new file, if normalized=True - adds norm as a name"""
+
+        args = ProcessedDataEntity.args if ProcessedDataEntity.args else arg_mapp
+        appendage = "norm" if normalized else ""
+
+        output = "Filename;"
+
+        for arg in args:
+            output += f"{appendage}{arg};" if arg != "poptX" else ProcessedDataEntity.get_popX_header(
+                normalized)
+
+        return output
+
 
 
 def get_index_value(predicted, actual):
@@ -209,11 +228,13 @@ def calculate_AUC(AUC_MAPPINGS):
     :return:
     """
     AUC = 0
+
     for index, AUC_MAPPING in enumerate(AUC_MAPPINGS[0:-1]):
         tpc = AUC_MAPPING.get('TP', 0)
         tnc = AUC_MAPPING.get('TN', 0)
         fpc = AUC_MAPPING.get('FP', 0)
         fnc = AUC_MAPPING.get('FN', 0)
+
         tpr = tpc / (tpc + fnc) if tpc + fnc else 0
         fpr = fpc / (fpc + tnc) if fpc + tnc else 0
 
@@ -223,7 +244,6 @@ def calculate_AUC(AUC_MAPPINGS):
         AUC_DELTA = (fpr - future_fpr) * tpr
 
         AUC += AUC_DELTA
-
     return AUC
 
 
@@ -264,13 +284,14 @@ def get_steps(start, end, step, base_dict):
 def create_file(processed_csv_file_data, normalized=False):
     """
     Creates file with data, uses normalize or no just for name
+    :param args: columns to create
     :param processed_csv_file_data:
     :param normalized:
     :return:
     """
-    output_file_name = "matrix_output.csv" # file name
+    output_file_name = "matrix_output.csv"  # file name
     if normalized:
-        output_file_name = "norm_" + output_file_name # normalized file name addition
+        output_file_name = "norm_" + output_file_name  # normalized file name addition
     f = open(output_file_name, "w")
     header = ProcessedDataEntity.generate_header(normalized)
     writer = csv.writer(f)

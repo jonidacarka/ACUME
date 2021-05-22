@@ -1,5 +1,6 @@
 import math
 import time
+import sys
 from os import listdir
 from os.path import isfile, join
 
@@ -7,6 +8,7 @@ from configs import files_path, include_types, start_value, end_value, step, exc
 from models import DataEntity, ProcessedDataEntity, get_index_value, calculate_MAP, create_file, calculate_AUC, \
     get_steps, calculate_POP
 
+ProcessedDataEntity.args = sys.argv[1:]
 processed_csv_file_data = []
 processed_csv_file_data_normalized = []
 mypath = files_path
@@ -29,8 +31,8 @@ for file_num, filename in enumerate(onlyfiles):
         continue
 
     file = open(mypath + filename)
-    total_line_of_code = 0 # total lines of code
-    total_nr_no = 0 # total line of false rows (used for normalization of IFA)
+    total_line_of_code = 0  # total lines of code
+    total_nr_no = 0  # total line of false rows (used for normalization of IFA)
     """
     File reading and initial transformation
     """
@@ -38,7 +40,7 @@ for file_num, filename in enumerate(onlyfiles):
     for row_index, row in enumerate(file):
         if row_index == 0:
             continue
-        lst = row.split(";") # delimiter
+        lst = row.split(";")  # delimiter
         id, size, prediction, actual = lst[0], int(lst[1]), float(lst[2]), True if lst[3].strip() == 'YES' else False
 
         data_rows.append(DataEntity(id=id, size=size, prediction=prediction, actual=actual, prediction_1=not actual,
