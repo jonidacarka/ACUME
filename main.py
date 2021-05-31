@@ -15,7 +15,7 @@ mypath = files_path
 onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
 t = time.time()
 data_rows = []
-
+delimiter = ";"
 for file_num, filename in enumerate(onlyfiles):
     TRUE_FALSE_MAPPINGS = [{} for j in range(0, 11)]
     AUC_MAPPINGS = [{} for j in range(0, 101)]
@@ -40,8 +40,9 @@ for file_num, filename in enumerate(onlyfiles):
     for row_index, row in enumerate(file):
         if row_index == 0:
             continue
-        lst = row.split(";")  # delimiter
-        id, size, prediction, actual = lst[0], int(lst[1]), float(lst[2]), True if lst[3].strip() == 'YES' else False
+        lst = row.split(delimiter)  # delimiter
+        id, size, prediction, actual = lst[0], int(lst[1]) if lst[1] else 0, float(lst[2]), True if lst[
+                                                                                                        3].strip().upper() == 'YES' else False
 
         data_rows.append(DataEntity(id=id, size=size, prediction=prediction, actual=actual, prediction_1=not actual,
                                     order_id=row_index))

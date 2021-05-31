@@ -1,7 +1,6 @@
-files_path = "test/"  # path of files to read and calculate
+files_path = "data/"  # path of files to read and calculate
 include_types = ['csv']  # file types to consider, might add xlsx or similar
 exclude_strings = ['________']  # files to exclude (have this, helpful for some rare cases)
-
 sorting_orders = [
     {  # initial order, right now done through prediction, insert order, size, then id
         'prediction': False,
