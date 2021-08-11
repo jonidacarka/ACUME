@@ -5,7 +5,7 @@ from os.path import isfile, join
 import numpy
 from configs import files_path, include_types, exclude_strings
 from models import get_index_value
-delimiter = ','
+delimiter = ';'
 processed_csv_file_data = []
 processed_csv_file_data_normalized = []
 mypath = files_path

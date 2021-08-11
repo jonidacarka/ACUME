@@ -96,3 +96,16 @@ Extension :
     python auc_generate
 
     Uses Numpy library, a fast data processing library. Output file name is auc_output
+
+Technical:
+
+    This are scripts that work in adjency with one another.
+    All basic scripts (such as auc_generate.py , main.py , new_n_generate.py) all use the models.py and configs.py
+    as a config and data model for ease on processing.
+    The scripts are run through 2 classes and group of helping calculating functions
+    The first class - input data
+    the second class - output data
+    while the functions - calculate_metric_a and generate file
+    Linear complexity in everything possible and a minimal repeation of calculation to achieve a fast script
+    Memory usage minimal.
+    Highly scalable , configurable, changable.
