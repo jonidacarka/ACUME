@@ -2,9 +2,7 @@ To Run:
 
 1)Download project files from git
 
-2)Place your excel files in the data folder, and in the test folder
-  place your test files 
-
+2)Place your excel files in the data or test folder
 3)Update configs.py file to your needs
 
   files_path  
@@ -65,7 +63,7 @@ To Run the code
     2) Follow the tutorial
   
     From CMD go to your directory using CD (changes depending on pc/storage place etc)
-    When inside the jonidas_project folder type :
+    When inside the ACUME project folder type :
     
     python -m venv venv - only use this the first time (it creates a packaged virtual env)
     venv\Scripts\activate - This part activates the virtual env , so you dont have to install any tool directly in pc
